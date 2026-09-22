@@ -1,0 +1,471 @@
+<title>写真かるくする</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="写真かるくする">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+:root{
+  --bg:#f6f5f3; --card:#ffffff; --ink:#1c1b1a; --ink-dim:#6b6560;
+  --accent:#d9772e; --accent-ink:#ffffff; --line:#e6e2dc;
+  --ok:#2f8a52; --warn:#c0392b; --track:#eee9e2; --shadow:0 1px 3px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#171614; --card:#232120; --ink:#f2efe9; --ink-dim:#a79f96;
+    --accent:#e8944a; --accent-ink:#171614; --line:#37342f;
+    --ok:#5cbf82; --warn:#e0685b; --track:#2c2a27; --shadow:0 1px 3px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#171614; --card:#232120; --ink:#f2efe9; --ink-dim:#a79f96;
+  --accent:#e8944a; --accent-ink:#171614; --line:#37342f;
+  --ok:#5cbf82; --warn:#e0685b; --track:#2c2a27; --shadow:0 1px 3px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box;}
+body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;}
+.wrap{max-width:640px;margin:0 auto;padding:20px 16px 48px;padding-block:20px 48px;}
+h1{font-size:20px;margin:4px 0 2px;letter-spacing:.02em;}
+.sub{color:var(--ink-dim);font-size:13px;margin:0 0 20px;line-height:1.5;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow);}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:28px 16px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;}
+.drop.drag{border-color:var(--accent);background:color-mix(in srgb, var(--accent) 8%, transparent);}
+.drop .big{font-size:15px;font-weight:600;margin-bottom:4px;}
+.drop .small{font-size:12px;color:var(--ink-dim);}
+input[type=file]{display:none;}
+button{font-family:inherit;font-size:14px;border:none;border-radius:10px;padding:11px 16px;cursor:pointer;font-weight:600;}
+.btn-primary{background:var(--accent);color:var(--accent-ink);width:100%;}
+.btn-primary:disabled{opacity:.4;cursor:default;}
+.btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--line);}
+.btn-sm{padding:7px 12px;font-size:12.5px;border-radius:8px;}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.settings summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-dim);list-style:none;}
+.settings summary::-webkit-details-marker{display:none;}
+.settings summary:before{content:"⚙ ";}
+.opt{display:flex;gap:8px;margin-top:12px;}
+.opt label{flex:1;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:12.5px;text-align:center;cursor:pointer;color:var(--ink-dim);}
+.opt input{display:none;}
+.opt input:checked + span{color:var(--accent-ink);}
+.opt label:has(input:checked){background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+.progress-wrap{margin-top:14px;}
+.bar{height:8px;border-radius:5px;background:var(--track);overflow:hidden;}
+.bar > i{display:block;height:100%;background:var(--accent);border-radius:5px;transition:width .2s;width:0%;}
+.progress-label{font-size:12.5px;color:var(--ink-dim);margin-top:6px;}
+.file-list{display:flex;flex-direction:column;gap:10px;}
+.file-item{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px;}
+.thumb{width:52px;height:52px;border-radius:8px;object-fit:cover;background:var(--track);flex-shrink:0;}
+.finfo{flex:1;min-width:0;}
+.fname{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fsize{font-size:12px;color:var(--ink-dim);margin-top:2px;}
+.fsize b{color:var(--ok);}
+.fsize.warn b{color:var(--warn);}
+.ftag{font-size:10.5px;padding:2px 6px;border-radius:6px;background:var(--track);color:var(--ink-dim);margin-left:4px;}
+.status-icon{width:22px;height:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.summary{display:flex;justify-content:space-between;font-size:13px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
+.summary b{font-size:15px;}
+.notice{font-size:12px;line-height:1.6;color:var(--ink-dim);background:var(--track);border-radius:10px;padding:10px 12px;margin-top:12px;}
+.notice.warn{color:var(--warn);background:color-mix(in srgb, var(--warn) 12%, var(--track));}
+.actions{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+.hidden{display:none!important;}
+.small-note{font-size:11.5px;color:var(--ink-dim);margin-top:8px;line-height:1.6;}
+a.dl-link{text-decoration:none;}
+h2.section-title{font-size:13px;font-weight:700;color:var(--ink-dim);margin:0 0 10px;text-transform:uppercase;letter-spacing:.04em;}
+</style>
+
+<div class="wrap">
+  <h1>📷 写真かるくする</h1>
+  <p class="sub">スマホの写真を、外部サーバーに送らずこの端末の中だけで軽量化して、社用PCで受信できるサイズ（合計10MB以内）にします。</p>
+
+  <div class="card">
+    <label class="drop" id="drop">
+      <div class="big">写真を選ぶ</div>
+      <div class="small">タップして選択、または複数枚をまとめて選択できます</div>
+      <input id="fileInput" type="file" accept="image/*" multiple>
+    </label>
+
+    <details class="settings" style="margin-top:14px;">
+      <summary>圧縮の詳細設定</summary>
+      <div class="opt">
+        <label><input type="radio" name="priority" value="quality"><span>画質優先</span></label>
+        <label><input type="radio" name="priority" value="size" checked><span>社用PC容量優先（既定）</span></label>
+      </div>
+      <div class="small-note">選んだ写真「全部合計」で社用PCの受信上限（10MB）に収まるよう、枚数に応じて自動的に配分して圧縮します。メール送信時のエンコードで容量が約1.37倍に増えることを見込み、実際には合計約7MB以下を目標にする安全設計です。「画質優先」は縮小より先に解像度を高めに保ちます。</div>
+    </details>
+  </div>
+
+  <div class="card hidden" id="progressCard">
+    <h2 class="section-title">処理中</h2>
+    <div class="progress-wrap">
+      <div class="bar"><i id="barFill"></i></div>
+      <div class="progress-label" id="progressLabel">0 / 0 枚 変換中…</div>
+    </div>
+  </div>
+
+  <div class="card hidden" id="resultCard">
+    <h2 class="section-title">処理結果</h2>
+    <div class="file-list" id="fileList"></div>
+    <div class="summary">
+      <span>合計サイズ</span>
+      <b><span id="totalBefore">-</span> → <span id="totalAfter" style="color:var(--ok);">-</span></b>
+    </div>
+    <div class="small-note">社用PC受信上限：10MB（メール添付時の増量を見込み、実作業目標は合計約7MB）</div>
+    <div class="notice hidden" id="aggWarn"></div>
+    <div class="actions">
+      <button class="btn-primary" id="shareBtn">共有してGmailに渡す</button>
+      <button class="btn-ghost" id="saveBtn">個別に保存（フォールバック）</button>
+    </div>
+    <div class="small-note" id="shareNote"></div>
+  </div>
+
+  <div class="card hidden" id="fallbackNotice">
+    <div class="notice">
+      前回、フォールバック保存（個別保存）を使いました。iPhoneの「ファイル」アプリに残っている軽量化済みファイルは、送信が終わっていればこちらで手動削除してください（Webアプリの仕組み上、送信済みかどうかをこのアプリから検知・削除することはできません）。このアプリ内の一時記録は起動時に自動でクリアしました。
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- config ----------
+  // 社用PCの送受信容量上限。要件上「写真ファイルの合計サイズ」ではなく
+  // 「Gmailで実際に受信するメール全体のサイズ」を指す可能性があるため、安全側に倒す。
+  var COMPANY_LIMIT_BYTES = 10 * 1024 * 1024;    // 社用PC側の受信上限（表示・説明用）
+  var ENCODING_OVERHEAD = 1.37;                  // メール添付はBase64化されるため実サイズの約1.37倍になる
+  var TOTAL_TARGET_BYTES = 7 * 1024 * 1024;      // 写真合計の実作業目標（10MB / 1.37 に安全余裕を加味した値）
+  var MIN_PER_FILE_BYTES = 100 * 1024;           // 1枚あたりに保証する最低予算（極端な枚数でも破綻しないように）
+  var MAX_DIM_QUALITY_MODE = 4096;
+  var MAX_DIM_SIZE_MODE = 3200;
+  var LS_KEY = "lighten_last_fallback_v1";
+
+  // ---------- elements ----------
+  var fileInput = document.getElementById('fileInput');
+  var drop = document.getElementById('drop');
+  var progressCard = document.getElementById('progressCard');
+  var barFill = document.getElementById('barFill');
+  var progressLabel = document.getElementById('progressLabel');
+  var resultCard = document.getElementById('resultCard');
+  var fileList = document.getElementById('fileList');
+  var totalBeforeEl = document.getElementById('totalBefore');
+  var totalAfterEl = document.getElementById('totalAfter');
+  var aggWarn = document.getElementById('aggWarn');
+  var shareBtn = document.getElementById('shareBtn');
+  var saveBtn = document.getElementById('saveBtn');
+  var shareNote = document.getElementById('shareNote');
+  var fallbackNotice = document.getElementById('fallbackNotice');
+
+  var processed = []; // {name, file(File), originalBytes, finalBytes, tag}
+
+  // ---------- startup: emulate "delete previous temp files on relaunch" ----------
+  // 実際のiPhone「ファイル」アプリ内のファイルはWebアプリからは削除できないため、
+  // ここではこのアプリ自身が持つ一時記録（フォールバック保存を使った、という記録）だけを
+  // 起動時に必ずクリアする。ユーザーへは正直にその旨を案内する。
+  try {
+    if (localStorage.getItem(LS_KEY) === '1') {
+      fallbackNotice.classList.remove('hidden');
+    }
+    localStorage.removeItem(LS_KEY);
+  } catch(e) { /* storage unavailable: ignore */ }
+
+  // ---------- helpers ----------
+  function fmtSize(bytes){
+    if (bytes >= 1024*1024) return (bytes/(1024*1024)).toFixed(2) + ' MB';
+    return Math.max(1, Math.round(bytes/1024)) + ' KB';
+  }
+
+  function getPriority(){
+    var el = document.querySelector('input[name=priority]:checked');
+    return el ? el.value : 'size';
+  }
+
+  function isHeic(file){
+    var n = (file.name || '').toLowerCase();
+    return /image\/heic|image\/heif/.test(file.type) || /\.heic$|\.heif$/.test(n);
+  }
+
+  function decodeToBitmapOrImage(file){
+    // 1) createImageBitmap を試す。失敗したら <img> 要素にフォールバック。
+    return new Promise(function(resolve, reject){
+      var url = URL.createObjectURL(file);
+      if (window.createImageBitmap) {
+        createImageBitmap(file, {imageOrientation: 'from-image'}).then(function(bmp){
+          URL.revokeObjectURL(url);
+          resolve({source: bmp, width: bmp.width, height: bmp.height, cleanup: function(){ bmp.close && bmp.close(); }});
+        }).catch(function(){
+          fallbackImg();
+        });
+      } else {
+        fallbackImg();
+      }
+      function fallbackImg(){
+        var img = new Image();
+        img.onload = function(){
+          resolve({source: img, width: img.naturalWidth, height: img.naturalHeight, cleanup: function(){ URL.revokeObjectURL(url); }});
+        };
+        img.onerror = function(){
+          URL.revokeObjectURL(url);
+          reject(new Error('decode-failed'));
+        };
+        img.src = url;
+      }
+    });
+  }
+
+  function drawToCanvas(source, srcW, srcH, targetW, targetH){
+    var canvas = document.createElement('canvas');
+    canvas.width = targetW;
+    canvas.height = targetH;
+    var ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(source, 0, 0, srcW, srcH, 0, 0, targetW, targetH);
+    return canvas;
+  }
+
+  function canvasToBlob(canvas, quality){
+    return new Promise(function(resolve){
+      canvas.toBlob(function(blob){ resolve(blob); }, 'image/jpeg', quality);
+    });
+  }
+
+  function scaledDims(w, h, maxDim){
+    if (w <= maxDim && h <= maxDim) return {w: w, h: h};
+    var ratio = Math.min(maxDim / w, maxDim / h);
+    return {w: Math.max(1, Math.round(w * ratio)), h: Math.max(1, Math.round(h * ratio))};
+  }
+
+  // 段階的に画質・解像度を落として目標サイズに収める
+  async function compressToTarget(source, srcW, srcH, targetBytes, priority){
+    var maxDim = priority === 'quality' ? MAX_DIM_QUALITY_MODE : MAX_DIM_SIZE_MODE;
+    var dimSteps = priority === 'quality'
+      ? [maxDim, Math.round(maxDim*0.85), Math.round(maxDim*0.7), Math.round(maxDim*0.55), Math.round(maxDim*0.4)]
+      : [Math.round(maxDim*0.9), Math.round(maxDim*0.75), Math.round(maxDim*0.6), Math.round(maxDim*0.45), Math.round(maxDim*0.32)];
+    var qualitySteps = priority === 'quality'
+      ? [0.92, 0.85, 0.78, 0.7, 0.6, 0.5]
+      : [0.85, 0.75, 0.65, 0.55, 0.45, 0.35];
+
+    var lastBlob = null;
+    for (var di = 0; di < dimSteps.length; di++) {
+      var dims = scaledDims(srcW, srcH, dimSteps[di]);
+      var canvas = drawToCanvas(source, srcW, srcH, dims.w, dims.h);
+      for (var qi = 0; qi < qualitySteps.length; qi++) {
+        var blob = await canvasToBlob(canvas, qualitySteps[qi]);
+        lastBlob = blob;
+        if (blob.size <= targetBytes) {
+          return blob;
+        }
+      }
+      // このサイズでは収まらない -> さらに小さい解像度へ
+    }
+    return lastBlob; // 目標に収まらなくても、最後に得られた最小の結果を返す
+  }
+
+  async function processOneFile(file, priority, targetBytes){
+    var originalBytes = file.size;
+    var alreadyOk = originalBytes <= targetBytes && !isHeic(file) && /^image\/(jpeg|png)$/.test(file.type);
+
+    if (alreadyOk) {
+      var url = URL.createObjectURL(file);
+      return { name: file.name, blob: file, originalBytes: originalBytes, finalBytes: originalBytes, tag: '無変換（十分小さい）', previewUrl: url, fitsTarget: true, outName: file.name };
+    }
+
+    var decoded;
+    try {
+      decoded = await decodeToBitmapOrImage(file);
+    } catch (e) {
+      return { name: file.name, blob: null, originalBytes: originalBytes, finalBytes: 0, tag: '対応できない形式', error: true, fitsTarget: false, outName: file.name };
+    }
+
+    var blob = await compressToTarget(decoded.source, decoded.width, decoded.height, targetBytes, priority);
+    if (decoded.cleanup) decoded.cleanup();
+
+    var outName = file.name.replace(/\.(heic|heif|png)$/i, '') + '.jpg';
+    if (!/\.jpg$|\.jpeg$/i.test(outName)) outName += '.jpg';
+
+    var tag = isHeic(file) ? 'HEIC→JPEG変換' : '再圧縮';
+    var previewUrl = URL.createObjectURL(blob);
+    return {
+      name: file.name, blob: blob, originalBytes: originalBytes, finalBytes: blob.size,
+      tag: tag, previewUrl: previewUrl, fitsTarget: blob.size <= targetBytes, outName: outName
+    };
+  }
+
+  // 選んだ写真全体で TOTAL_TARGET_BYTES に収まるよう、ウォーターフィリング方式で
+  // 1枚ごとの目標バイト数を配分する。すでに十分小さい（かつ変換不要な）ファイルは
+  // そのまま使い、余った予算を残りのファイルへ再配分する。
+  function allocateBudgets(fileArray){
+    var n = fileArray.length;
+    var budgets = new Array(n).fill(0);
+    var remainingBudget = TOTAL_TARGET_BYTES;
+    var remainingIdx = [];
+    for (var i = 0; i < n; i++) remainingIdx.push(i);
+
+    var changed = true;
+    while (changed && remainingIdx.length > 0) {
+      changed = false;
+      var share = remainingBudget / remainingIdx.length;
+      var stillNeed = [];
+      for (var k = 0; k < remainingIdx.length; k++) {
+        var idx = remainingIdx[k];
+        var f = fileArray[idx];
+        var canKeepAsIs = !isHeic(f) && /^image\/(jpeg|png)$/.test(f.type);
+        if (canKeepAsIs && f.size <= share) {
+          budgets[idx] = f.size;
+          remainingBudget -= f.size;
+          changed = true;
+        } else {
+          stillNeed.push(idx);
+        }
+      }
+      remainingIdx = stillNeed;
+    }
+
+    if (remainingIdx.length > 0) {
+      var evenShare = Math.max(remainingBudget / remainingIdx.length, MIN_PER_FILE_BYTES);
+      remainingIdx.forEach(function(idx){ budgets[idx] = evenShare; });
+    }
+    return budgets;
+  }
+
+  async function handleFiles(fileArray){
+    if (!fileArray.length) return;
+    resultCard.classList.add('hidden');
+    fallbackNotice.classList.add('hidden');
+    progressCard.classList.remove('hidden');
+    fileList.innerHTML = '';
+    processed = [];
+
+    var priority = getPriority();
+    var total = fileArray.length;
+    var budgets = allocateBudgets(fileArray);
+    barFill.style.width = '0%';
+    progressLabel.textContent = '0 / ' + total + ' 枚 変換中…';
+
+    for (var i = 0; i < total; i++) {
+      var f = fileArray[i];
+      progressLabel.textContent = (i) + ' / ' + total + ' 枚 変換中… (' + f.name + ')';
+      var result = await processOneFile(f, priority, budgets[i]);
+      processed.push(result);
+      barFill.style.width = Math.round(((i+1)/total)*100) + '%';
+      progressLabel.textContent = (i+1) + ' / ' + total + ' 枚 変換完了';
+    }
+
+    renderResults();
+    progressCard.classList.add('hidden');
+    resultCard.classList.remove('hidden');
+  }
+
+  function renderResults(){
+    fileList.innerHTML = '';
+    var totalBefore = 0, totalAfter = 0, anyOver = false, anyError = false;
+
+    processed.forEach(function(p){
+      totalBefore += p.originalBytes;
+      totalAfter += p.finalBytes;
+      if (!p.fitsTarget && !p.error) anyOver = true;
+      if (p.error) anyError = true;
+
+      var item = document.createElement('div');
+      item.className = 'file-item';
+
+      var thumbHtml = p.previewUrl
+        ? '<img class="thumb" src="' + p.previewUrl + '">'
+        : '<div class="thumb"></div>';
+
+      var sizeClass = (p.error || !p.fitsTarget) ? 'fsize warn' : 'fsize';
+      var sizeText = p.error
+        ? '処理できませんでした'
+        : (fmtSize(p.originalBytes) + ' → <b>' + fmtSize(p.finalBytes) + '</b>' + (p.finalBytes && p.originalBytes ? ' (-' + Math.round((1-p.finalBytes/p.originalBytes)*100) + '%)' : ''));
+
+      item.innerHTML =
+        thumbHtml +
+        '<div class="finfo">' +
+          '<div class="fname">' + escapeHtml(p.outName || p.name) + '<span class="ftag">' + escapeHtml(p.tag || '') + '</span></div>' +
+          '<div class="' + sizeClass + '">' + sizeText + '</div>' +
+        '</div>' +
+        '<div class="status-icon">' + (p.error ? '⚠️' : (p.fitsTarget ? '✅' : '⚠️')) + '</div>';
+      fileList.appendChild(item);
+    });
+
+    totalBeforeEl.textContent = fmtSize(totalBefore);
+    totalAfterEl.textContent = fmtSize(totalAfter);
+
+    var estimatedMailBytes = totalAfter * ENCODING_OVERHEAD;
+    if (anyError || anyOver || estimatedMailBytes > COMPANY_LIMIT_BYTES) {
+      aggWarn.classList.remove('hidden');
+      var msgs = [];
+      if (anyError) msgs.push('一部のファイルは対応していない形式のため処理できませんでした。');
+      if (anyOver) msgs.push('一部のファイルは圧縮しても割り当て容量に収まりませんでした。無理に画質を落とさず処理を止めています。');
+      if (estimatedMailBytes > COMPANY_LIMIT_BYTES) msgs.push('枚数が多く、メール送信時のエンコード増加分（約1.37倍）を考慮すると社用PCの受信上限（10MB）に収まらない可能性があります。写真を分割して複数回に分けて送信してください。');
+      aggWarn.textContent = msgs.join(' ');
+    } else {
+      aggWarn.classList.add('hidden');
+    }
+
+    // share button availability
+    var canShareFiles = false;
+    try {
+      var testFiles = processed.filter(function(p){ return p.blob; }).map(function(p){ return new File([p.blob], p.outName, {type: 'image/jpeg'}); });
+      canShareFiles = !!(navigator.canShare && testFiles.length && navigator.canShare({files: testFiles}));
+    } catch(e){ canShareFiles = false; }
+
+    shareBtn.disabled = !canShareFiles;
+    shareNote.textContent = canShareFiles
+      ? '共有シートが開いたら「Gmail」を選ぶと、軽量化済みの写真がそのまま新規メールに添付されます。端末に保存はされません。'
+      : 'この端末・ブラウザでは複数ファイルの共有シートが使えないため、下の「個別に保存」からGmailに手動で添付してください。';
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  shareBtn.addEventListener('click', async function(){
+    var files = processed.filter(function(p){ return p.blob; }).map(function(p){ return new File([p.blob], p.outName, {type: 'image/jpeg'}); });
+    if (!files.length) return;
+    try {
+      await navigator.share({ files: files, title: '軽量化した写真' });
+    } catch (e) {
+      // ユーザーがキャンセルした場合などは何もしない
+    }
+  });
+
+  saveBtn.addEventListener('click', function(){
+    var any = false;
+    processed.forEach(function(p, idx){
+      if (!p.blob) return;
+      any = true;
+      setTimeout(function(){
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(p.blob);
+        a.download = p.outName;
+        a.className = 'dl-link';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }, idx * 400); // iOS Safariが連続ダウンロードを無視しないよう間隔を空ける
+    });
+    if (any) {
+      try { localStorage.setItem(LS_KEY, '1'); } catch(e){}
+      shareNote.textContent = '保存を実行しました。iPhoneの共有シートで「ファイルに保存」を選ぶとファイルアプリの任意フォルダに置けます。保存後はGmailアプリの「ファイルを添付」から手動で選んで送信してください。';
+    }
+  });
+
+  drop.addEventListener('dragover', function(e){ e.preventDefault(); drop.classList.add('drag'); });
+  drop.addEventListener('dragleave', function(){ drop.classList.remove('drag'); });
+  drop.addEventListener('drop', function(e){
+    e.preventDefault();
+    drop.classList.remove('drag');
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+      handleFiles(Array.prototype.slice.call(e.dataTransfer.files));
+    }
+  });
+  fileInput.addEventListener('change', function(){
+    if (fileInput.files && fileInput.files.length) {
+      handleFiles(Array.prototype.slice.call(fileInput.files));
+      fileInput.value = '';
+    }
+  });
+})();
+</script>
